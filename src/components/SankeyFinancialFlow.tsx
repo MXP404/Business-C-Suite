@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { AgentId } from '../types';
 import { CARTOON_AGENTS } from '../data/portfolioData';
+import {
+  COMPANY_PROFILES,
+  CompanyProfileId,
+  CompanyProfileConfig,
+} from '../data/companyProfiles';
 import { CartoonAgentAvatar, GeminiStarNode } from './CartoonAgentAvatars';
 import {
   ZoomIn,
@@ -13,185 +18,11 @@ import {
   Sparkles,
   Clock,
   ShieldCheck,
+  Building2,
+  SlidersHorizontal,
 } from 'lucide-react';
 
-export type UnitFilterId = 'ALL' | 'SM-101' | 'SM-202' | 'SM-303';
-
-interface ExpenseLineItem {
-  id: string;
-  shortLabel: string; // Condensed 1-2 word label so words never clip or overlap
-  fullLabel: string;
-  group: 'COGS' | 'OPEX';
-  color: string;
-  agentId: AgentId;
-  values: {
-    'SM-101': number;
-    'SM-202': number;
-    'SM-303': number;
-  };
-  agentNote: string;
-  trialFixId?: string;
-}
-
-const EXPENSE_LINE_ITEMS: ExpenseLineItem[] = [
-  // =========================================================================
-  // 1. COGS (Cost of Revenue / Direct Unit Fulfillment & Upkeep) — Gemini Violet Spectrum
-  // =========================================================================
-  {
-    id: 'EXP_CLEANING',
-    shortLabel: 'Cleaning',
-    fullLabel: 'COGS · Cleaning Crew (Peninsula Sparkle)',
-    group: 'COGS',
-    color: '#6D28D9',
-    agentId: 'CLEANING',
-    values: { 'SM-101': 8845, 'SM-202': 8915, 'SM-303': 12075 },
-    agentNote:
-      'Toby (Cleaning): -$29,835 YTD (-$73,805 over 21 mos). On SM-303, 1-night stays caused direct cleaning COGS to swallow 36.8% of accommodation revenue!',
-    trialFixId: 'TRIAL_2',
-  },
-  {
-    id: 'EXP_REPAIRS',
-    shortLabel: 'Repairs',
-    fullLabel: 'COGS · Direct Repairs & Maintenance',
-    group: 'COGS',
-    color: '#7C3AED',
-    agentId: 'MAINT',
-    values: { 'SM-101': 1620, 'SM-202': 20385, 'SM-303': 4767 },
-    agentNote:
-      'Manny (Maint): SM-202 (age 88) accounts for 76% of all direct repair COGS (-$20,385 YTD), plus -$9,200 roof CapEx and -$5,400 repeat roof billing.',
-    trialFixId: 'TRIAL_3',
-  },
-  {
-    id: 'EXP_UTIL_LAND',
-    shortLabel: 'Utilities',
-    fullLabel: 'COGS · Utilities, Wi-Fi & Landscaping',
-    group: 'COGS',
-    color: '#8B5CF6',
-    agentId: 'PROPERTY',
-    values: { 'SM-101': 4050, 'SM-202': 6480, 'SM-303': 4290 },
-    agentNote:
-      'Pia (Property): Direct unit PG&E power/gas, water/sewer, fiber internet, and yard care (-$14,820 YTD). SM-202 large lot requires -$420/mo landscaping.',
-  },
-  {
-    id: 'EXP_SUPPLIES',
-    shortLabel: 'Supplies',
-    fullLabel: 'COGS · Guest Supplies, Linens & Consumables',
-    group: 'COGS',
-    color: '#A855F7',
-    agentId: 'CLEANING',
-    values: { 'SM-101': 2600, 'SM-202': 3080, 'SM-303': 1960 },
-    agentNote:
-      'Toby (Cleaning): Direct guest consumables, toiletries, and linen replacement (-$7,640 YTD). High 1-night turnover inflates per-stay consumable burn.',
-    trialFixId: 'TRIAL_1',
-  },
-
-  // =========================================================================
-  // 2. OPERATIONAL EXPENSES (Fixed OpEx, SG&A, Debt Interest, Tax & Depr.) — Gemini Cobalt/Indigo Spectrum
-  // =========================================================================
-  {
-    id: 'EXP_INTEREST',
-    shortLabel: 'Mortgage Int.',
-    fullLabel: 'OpEx · Mortgage Interest (P&L Financing Cost)',
-    group: 'OPEX',
-    color: '#1D4ED8',
-    agentId: 'CFO',
-    values: { 'SM-101': 12150, 'SM-202': 14400, 'SM-303': 11700 },
-    agentNote:
-      'Finn (CFO): Largest Operational Expense on the P&L (-$38,250 YTD). Requires higher multi-night occupancy on SM-202 to amortize fixed debt cost.',
-  },
-  {
-    id: 'EXP_TAX_INS',
-    shortLabel: 'Tax & Ins.',
-    fullLabel: 'OpEx · Property Taxes & Hazard Insurance',
-    group: 'OPEX',
-    color: '#2563EB',
-    agentId: 'CFO',
-    values: { 'SM-101': 7650, 'SM-202': 10440, 'SM-303': 6060 },
-    agentNote:
-      'Finn (CFO): Fixed San Mateo County property tax & hazard insurance (-$24,150 YTD). SM-202 carries -$850/mo property tax + -$310/mo vintage insurance.',
-  },
-  {
-    id: 'EXP_DEPRECIATION',
-    shortLabel: 'Depreciation',
-    fullLabel: 'OpEx · Depreciation (Non-Cash P&L Expense)',
-    group: 'OPEX',
-    color: '#3B82F6',
-    agentId: 'CFO',
-    values: { 'SM-101': 4500, 'SM-202': 5580, 'SM-303': 3240 },
-    agentNote:
-      'Finn (CFO): Non-cash P&L depreciation (-$13,320 YTD: -$500/mo SM-101, -$620/mo SM-202, -$360/mo SM-303). Deducted for Net Income; added back for Cash Flow.',
-  },
-  {
-    id: 'EXP_PLATFORM',
-    shortLabel: 'Platform Fees',
-    fullLabel: 'OpEx · Channel Commissions & PMS Software',
-    group: 'OPEX',
-    color: '#0EA5E9',
-    agentId: 'PRICING',
-    values: { 'SM-101': 3164, 'SM-202': 2749, 'SM-303': 2579 },
-    agentNote:
-      'Pippa (Pricing): 3.5% host channel fee plus dynamic pricing & PMS software (-$8,492 YTD across the 3 properties).',
-  },
-];
-
-// Balance sheet cash outflows below Net Income (Principal + CapEx) for Cash Reconciliation
-const CASH_DEBT_CAPEX: Record<'SM-101' | 'SM-202' | 'SM-303', { principal: number; capex: number }> = {
-  'SM-101': { principal: 11250, capex: 0 },
-  'SM-202': { principal: 13050, capex: 9200 },
-  'SM-303': { principal: 7650, capex: 0 },
-};
-
-interface UnitRevenueData {
-  id: 'SM-101' | 'SM-202' | 'SM-303';
-  name: string;
-  shortName: string;
-  cohortLabel: string;
-  accommRev: number;
-  cleaningFeeRev: number;
-  occupancy: string;
-  adr: string;
-  avgStay: string;
-  color: string;
-}
-
-const UNIT_REVENUES: Record<'SM-101' | 'SM-202' | 'SM-303', UnitRevenueData> = {
-  'SM-101': {
-    id: 'SM-101',
-    name: 'SM-101 Central Park Luxe (2BR)',
-    shortName: 'SM-101 Central',
-    cohortLabel: 'Cohort A · Turnkey Cash Cow',
-    accommRev: 68911,
-    cleaningFeeRev: 8855,
-    occupancy: '81.7%',
-    adr: '$313.25',
-    avgStay: '4.54 Nts',
-    color: '#2563EB',
-  },
-  'SM-202': {
-    id: 'SM-202',
-    name: 'SM-202 Baywood Heritage (4BR)',
-    shortName: 'SM-202 Baywood',
-    cohortLabel: 'Cohort B · Distressed Vintage',
-    accommRev: 41579,
-    cleaningFeeRev: 12470,
-    occupancy: '22.0%',
-    adr: '$692.94',
-    avgStay: '1.25 Nts',
-    color: '#7C3AED',
-  },
-  'SM-303': {
-    id: 'SM-303',
-    name: 'SM-303 Shoreview Bungalow (3BR)',
-    shortName: 'SM-303 Shoreview',
-    cohortLabel: 'Cohort C · Turnover Trap',
-    accommRev: 32766,
-    cleaningFeeRev: 13471,
-    occupancy: '48.7%',
-    adr: '$246.36',
-    avgStay: '1.80 Nts',
-    color: '#00C4B4',
-  },
-};
+export type UnitSlotId = 'ALL' | 'UNIT_A' | 'UNIT_B' | 'UNIT_C';
 
 type ArgonMode = 'ELASTICITY' | 'KILLSWITCH' | 'SCALE_30';
 
@@ -204,6 +35,8 @@ interface ArgonSynthesisResponse {
 }
 
 interface SankeyFinancialFlowProps {
+  activeCompanyId: CompanyProfileId;
+  onSelectCompany: (companyId: CompanyProfileId) => void;
   activeTrialIds: string[];
   onToggleTrial: (trialId: string) => void;
   onSelectAgent: (agentId: AgentId) => void;
@@ -227,17 +60,64 @@ const formatNegativeAccounting = (val: number) => {
 };
 
 export const SankeyFinancialFlow: React.FC<SankeyFinancialFlowProps> = ({
+  activeCompanyId,
+  onSelectCompany,
   activeTrialIds,
   onToggleTrial,
   onSelectAgent,
 }) => {
-  const [selectedUnit, setSelectedUnit] = useState<UnitFilterId>('ALL');
-  const [hoveredItemId, setHoveredItemId] = useState<string>('EXP_INTEREST');
+  const [selectedUnit, setSelectedUnit] = useState<UnitSlotId>('ALL');
+  const [hoveredItemId, setHoveredItemId] = useState<string>('EXP_CLEANING');
+
+  // Custom Company quick-editor state so user can paste/rename from a parallel session
+  const [isCustomModalOpen, setIsCustomModalOpen] = useState<boolean>(false);
+  const [customCompanyName, setCustomCompanyName] = useState<string>(
+    COMPANY_PROFILES.CUSTOM_SMB.companyName
+  );
+  const [customUnitAName, setCustomUnitAName] = useState<string>(
+    COMPANY_PROFILES.CUSTOM_SMB.units.UNIT_A.name
+  );
+  const [customUnitBName, setCustomUnitBName] = useState<string>(
+    COMPANY_PROFILES.CUSTOM_SMB.units.UNIT_B.name
+  );
+  const [customUnitCName, setCustomUnitCName] = useState<string>(
+    COMPANY_PROFILES.CUSTOM_SMB.units.UNIT_C.name
+  );
+
+  // Build active company profile (merging custom names if CUSTOM_SMB is active)
+  const baseProfile: CompanyProfileConfig =
+    COMPANY_PROFILES[activeCompanyId] || COMPANY_PROFILES.NEW_ROASTERY_SMB;
+
+  const activeProfile: CompanyProfileConfig =
+    activeCompanyId === 'CUSTOM_SMB'
+      ? {
+          ...baseProfile,
+          companyName: customCompanyName || baseProfile.companyName,
+          statementTitle: `${customCompanyName || 'Custom Company'} FY26 P&L Income Statement`,
+          units: {
+            UNIT_A: {
+              ...baseProfile.units.UNIT_A,
+              name: customUnitAName || baseProfile.units.UNIT_A.name,
+              shortName: (customUnitAName || 'Unit A').slice(0, 18),
+            },
+            UNIT_B: {
+              ...baseProfile.units.UNIT_B,
+              name: customUnitBName || baseProfile.units.UNIT_B.name,
+              shortName: (customUnitBName || 'Unit B').slice(0, 18),
+            },
+            UNIT_C: {
+              ...baseProfile.units.UNIT_C,
+              name: customUnitCName || baseProfile.units.UNIT_C.name,
+              shortName: (customUnitCName || 'Unit C').slice(0, 18),
+            },
+          },
+        }
+      : baseProfile;
 
   // 24-HOURS (SANDBOX) EVERY 5-MINUTES (TRUE TIME) ENGINE
   const [isSandboxRunning, setIsSandboxRunning] = useState<boolean>(true);
   const [isWarpSpeed, setIsWarpSpeed] = useState<boolean>(false);
-  const [sandboxHoursElapsed, setSandboxHoursElapsed] = useState<number>(96); // Start at Day 4.0
+  const [sandboxHoursElapsed, setSandboxHoursElapsed] = useState<number>(96);
 
   // Gemini 4 Argon Elevation state
   const [argonMode, setArgonMode] = useState<ArgonMode>('ELASTICITY');
@@ -278,7 +158,10 @@ export const SankeyFinancialFlow: React.FC<SankeyFinancialFlowProps> = ({
             mode: argonMode,
             sandboxDay: currentSandboxDay,
             activeTrials: activeTrialIds,
-            selectedUnit,
+            selectedUnit:
+              selectedUnit === 'ALL'
+                ? activeProfile.companyName
+                : activeProfile.units[selectedUnit].name,
           }),
         });
         const data = await res.json();
@@ -295,31 +178,31 @@ export const SankeyFinancialFlow: React.FC<SankeyFinancialFlowProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [argonMode, selectedUnit, activeTrialIds, currentSandboxDay]);
+  }, [argonMode, selectedUnit, activeTrialIds, currentSandboxDay, activeProfile.companyName]);
 
   const sandboxScaleFactor = Math.min(1, Math.max(0.35, currentSandboxDay / 14));
 
-  const getUnitFinancials = (unitId: 'SM-101' | 'SM-202' | 'SM-303') => {
-    const baseRev = UNIT_REVENUES[unitId];
-    const t1Active = activeTrialIds.includes('TRIAL_1') && unitId === 'SM-202';
-    const t2Active = activeTrialIds.includes('TRIAL_2') && unitId === 'SM-303';
-    const t3Active = activeTrialIds.includes('TRIAL_3') && unitId === 'SM-202';
+  const getUnitFinancials = (slotId: 'UNIT_A' | 'UNIT_B' | 'UNIT_C') => {
+    const baseUnit = activeProfile.units[slotId];
+    const t1Active = activeTrialIds.includes('TRIAL_1') && slotId === 'UNIT_B';
+    const t2Active = activeTrialIds.includes('TRIAL_2') && slotId === 'UNIT_C';
+    const t3Active = activeTrialIds.includes('TRIAL_3') && slotId === 'UNIT_B';
 
     const accommRev =
-      baseRev.accommRev +
-      (t1Active ? Math.round(17892 * sandboxScaleFactor) : 0) +
-      (t2Active ? Math.round(2200 * sandboxScaleFactor) : 0);
-    const cleaningFeeRev = baseRev.cleaningFeeRev;
+      baseUnit.primaryRev +
+      (t1Active ? Math.round((baseUnit.trial1Lift || 18000) * sandboxScaleFactor) : 0) +
+      (t2Active ? Math.round((baseUnit.trial2Lift || 4500) * sandboxScaleFactor) : 0);
+    const cleaningFeeRev = baseUnit.secondaryRev;
     const totalRev = accommRev + cleaningFeeRev;
 
-    const itemValues = EXPENSE_LINE_ITEMS.map((item) => {
-      let val = item.values[unitId];
+    const itemValues = activeProfile.expenses.map((item) => {
+      let val = item.values[slotId];
       if (item.id === 'EXP_CLEANING' && t1Active)
-        val = Math.max(4800, val - Math.round(4050 * sandboxScaleFactor));
+        val = Math.max(Math.round(val * 0.65), val - Math.round(4500 * sandboxScaleFactor));
       if (item.id === 'EXP_CLEANING' && t2Active)
-        val = Math.max(8200, val - Math.round(3686 * sandboxScaleFactor));
+        val = Math.max(Math.round(val * 0.72), val - Math.round(5200 * sandboxScaleFactor));
       if (item.id === 'EXP_REPAIRS' && t3Active)
-        val = Math.max(6435, val - Math.round(13950 * sandboxScaleFactor));
+        val = Math.max(Math.round(val * 0.42), val - Math.round(14200 * sandboxScaleFactor));
       return { ...item, amount: val };
     });
 
@@ -332,14 +215,13 @@ export const SankeyFinancialFlow: React.FC<SankeyFinancialFlowProps> = ({
     const depreciation =
       opexItems.find((i) => i.id === 'EXP_DEPRECIATION')?.amount || 0;
 
-    const debtCapex =
-      CASH_DEBT_CAPEX[unitId].principal + CASH_DEBT_CAPEX[unitId].capex;
+    const debtCapex = baseUnit.principalOutflow + baseUnit.capexOutflow;
 
     const netIncome = totalRev - totalExpenses;
     const netCash = netIncome + depreciation - debtCapex;
 
     return {
-      unitId,
+      slotId,
       accommRev,
       cleaningFeeRev,
       totalRev,
@@ -354,38 +236,38 @@ export const SankeyFinancialFlow: React.FC<SankeyFinancialFlowProps> = ({
     };
   };
 
-  const u101 = getUnitFinancials('SM-101');
-  const u202 = getUnitFinancials('SM-202');
-  const u303 = getUnitFinancials('SM-303');
+  const uA = getUnitFinancials('UNIT_A');
+  const uB = getUnitFinancials('UNIT_B');
+  const uC = getUnitFinancials('UNIT_C');
 
   const activeData =
-    selectedUnit === 'SM-101'
-      ? u101
-      : selectedUnit === 'SM-202'
-      ? u202
-      : selectedUnit === 'SM-303'
-      ? u303
+    selectedUnit === 'UNIT_A'
+      ? uA
+      : selectedUnit === 'UNIT_B'
+      ? uB
+      : selectedUnit === 'UNIT_C'
+      ? uC
       : {
-          unitId: 'ALL' as const,
-          accommRev: u101.accommRev + u202.accommRev + u303.accommRev,
+          slotId: 'ALL' as const,
+          accommRev: uA.accommRev + uB.accommRev + uC.accommRev,
           cleaningFeeRev:
-            u101.cleaningFeeRev + u202.cleaningFeeRev + u303.cleaningFeeRev,
-          totalRev: u101.totalRev + u202.totalRev + u303.totalRev,
-          totalCogs: u101.totalCogs + u202.totalCogs + u303.totalCogs,
-          totalOpex: u101.totalOpex + u202.totalOpex + u303.totalOpex,
+            uA.cleaningFeeRev + uB.cleaningFeeRev + uC.cleaningFeeRev,
+          totalRev: uA.totalRev + uB.totalRev + uC.totalRev,
+          totalCogs: uA.totalCogs + uB.totalCogs + uC.totalCogs,
+          totalOpex: uA.totalOpex + uB.totalOpex + uC.totalOpex,
           totalExpenses:
-            u101.totalExpenses + u202.totalExpenses + u303.totalExpenses,
+            uA.totalExpenses + uB.totalExpenses + uC.totalExpenses,
           depreciation:
-            u101.depreciation + u202.depreciation + u303.depreciation,
-          debtCapex: u101.debtCapex + u202.debtCapex + u303.debtCapex,
-          netIncome: u101.netIncome + u202.netIncome + u303.netIncome,
-          netCash: u101.netCash + u202.netCash + u303.netCash,
-          itemValues: EXPENSE_LINE_ITEMS.map((item, idx) => ({
+            uA.depreciation + uB.depreciation + uC.depreciation,
+          debtCapex: uA.debtCapex + uB.debtCapex + uC.debtCapex,
+          netIncome: uA.netIncome + uB.netIncome + uC.netIncome,
+          netCash: uA.netCash + uB.netCash + uC.netCash,
+          itemValues: activeProfile.expenses.map((item, idx) => ({
             ...item,
             amount:
-              u101.itemValues[idx].amount +
-              u202.itemValues[idx].amount +
-              u303.itemValues[idx].amount,
+              uA.itemValues[idx].amount +
+              uB.itemValues[idx].amount +
+              uC.itemValues[idx].amount,
           })),
         };
 
@@ -399,10 +281,10 @@ export const SankeyFinancialFlow: React.FC<SankeyFinancialFlowProps> = ({
   const svgH = 620;
   const barW = 18;
 
-  const col1X = 215; // Left Income Stream bars; labels in [10..200]
-  const col2X = 435; // Central Revenue bar; label sits ABOVE bar
-  const col3X = 675; // P&L Buckets: 1. COGS (Top) -> 2. OpEx (Mid) -> 3. Net Income (Bottom)
-  const col4X = 915; // Right-hand Granular Line Items (Sorted Most Expensive -> Least Expensive) + Net Income at bottom
+  const col1X = 215;
+  const col2X = 435;
+  const col3X = 675;
+  const col4X = 915;
 
   const totalPnlVolume =
     activeData.totalCogs +
@@ -417,43 +299,43 @@ export const SankeyFinancialFlow: React.FC<SankeyFinancialFlowProps> = ({
     selectedUnit === 'ALL'
       ? [
           {
-            id: 'SRC_101',
-            unitFilter: 'SM-101' as UnitFilterId,
-            label: 'SM-101 Central',
-            sub: `82% Occ · ${formatCompactDollar(u101.netIncome, true)}`,
-            amount: u101.totalRev,
-            color: '#2563EB', // Gemini Cobalt
+            id: 'SRC_A',
+            unitFilter: 'UNIT_A' as UnitSlotId,
+            label: activeProfile.units.UNIT_A.shortName,
+            sub: `${activeProfile.units.UNIT_A.utilizationLabel} · ${formatCompactDollar(uA.netIncome, true)}`,
+            amount: uA.totalRev,
+            color: '#2563EB',
           },
           {
-            id: 'SRC_202',
-            unitFilter: 'SM-202' as UnitFilterId,
-            label: 'SM-202 Baywood',
-            sub: `22% Occ · ${formatCompactDollar(u202.netIncome, true)}`,
-            amount: u202.totalRev,
-            color: '#7C3AED', // Gemini Violet
+            id: 'SRC_B',
+            unitFilter: 'UNIT_B' as UnitSlotId,
+            label: activeProfile.units.UNIT_B.shortName,
+            sub: `${activeProfile.units.UNIT_B.utilizationLabel} · ${formatCompactDollar(uB.netIncome, true)}`,
+            amount: uB.totalRev,
+            color: '#7C3AED',
           },
           {
-            id: 'SRC_303',
-            unitFilter: 'SM-303' as UnitFilterId,
-            label: 'SM-303 Shoreview',
-            sub: `49% Occ · ${formatCompactDollar(u303.netIncome, true)}`,
-            amount: u303.totalRev,
-            color: '#00C4B4', // Gemini Aqua Teal
+            id: 'SRC_C',
+            unitFilter: 'UNIT_C' as UnitSlotId,
+            label: activeProfile.units.UNIT_C.shortName,
+            sub: `${activeProfile.units.UNIT_C.utilizationLabel} · ${formatCompactDollar(uC.netIncome, true)}`,
+            amount: uC.totalRev,
+            color: '#00C4B4',
           },
         ]
       : [
           {
-            id: 'SRC_ACCOMM',
+            id: 'SRC_PRIMARY',
             unitFilter: selectedUnit,
-            label: 'Booking Revenue',
+            label: activeProfile.units[selectedUnit].primaryRevLabel.slice(0, 18),
             sub: `${Math.round((activeData.accommRev / activeData.totalRev) * 100)}% of Gross`,
             amount: activeData.accommRev,
             color: '#2563EB',
           },
           {
-            id: 'SRC_CLEAN_FEE',
+            id: 'SRC_SECONDARY',
             unitFilter: selectedUnit,
-            label: 'Cleaning Fees',
+            label: activeProfile.units[selectedUnit].secondaryRevLabel.slice(0, 18),
             sub: `${Math.round((activeData.cleaningFeeRev / activeData.totalRev) * 100)}% of Gross`,
             amount: activeData.cleaningFeeRev,
             color: '#00C4B4',
@@ -474,10 +356,7 @@ export const SankeyFinancialFlow: React.FC<SankeyFinancialFlowProps> = ({
   const col2H = Math.max(125, activeData.totalRev * pxPerDollar);
   const col2Y = 155;
 
-  // COLUMN 3: P&L Hierarchy from Top to Bottom in Gemini Brand Colors:
-  // 1. COGS (Direct Costs) at Top -> Gemini Violet (#7C3AED)
-  // 2. Operational Expenses in Middle -> Gemini Cobalt (#2563EB)
-  // 3. Net Income at Bottom -> Gemini Aqua Teal (#00C4B4)
+  // COLUMN 3: P&L Hierarchy from Top to Bottom in Gemini Brand Colors
   const netMarginPct = Math.round(
     (activeData.netIncome / Math.max(1, activeData.totalRev)) * 100
   );
@@ -487,7 +366,7 @@ export const SankeyFinancialFlow: React.FC<SankeyFinancialFlowProps> = ({
       label: 'COGS (Direct Costs)',
       sub: `${formatNegativeAccounting(activeData.totalCogs)} · ${Math.round((activeData.totalCogs / activeData.totalRev) * 100)}% of rev`,
       amount: activeData.totalCogs,
-      color: '#7C3AED', // Gemini Violet
+      color: '#7C3AED',
       ribbonColor: '#C4B5FD',
     },
     {
@@ -495,7 +374,7 @@ export const SankeyFinancialFlow: React.FC<SankeyFinancialFlowProps> = ({
       label: 'Operational Expenses',
       sub: `${formatNegativeAccounting(activeData.totalOpex)} · ${Math.round((activeData.totalOpex / activeData.totalRev) * 100)}% of rev`,
       amount: activeData.totalOpex,
-      color: '#2563EB', // Gemini Cobalt
+      color: '#2563EB',
       ribbonColor: '#93C5FD',
     },
     {
@@ -503,7 +382,7 @@ export const SankeyFinancialFlow: React.FC<SankeyFinancialFlowProps> = ({
       label: activeData.netIncome >= 0 ? 'Net Income (P&L)' : 'Net Loss (P&L)',
       sub: `${formatCompactDollar(activeData.netIncome, true)} · ${netMarginPct}% margin`,
       amount: Math.abs(activeData.netIncome),
-      color: activeData.netIncome >= 0 ? '#00C4B4' : '#E11D48', // Gemini Aqua Teal
+      color: activeData.netIncome >= 0 ? '#00C4B4' : '#E11D48',
       ribbonColor: activeData.netIncome >= 0 ? '#5EEAD4' : '#FDA4AF',
     },
   ];
@@ -536,7 +415,11 @@ export const SankeyFinancialFlow: React.FC<SankeyFinancialFlowProps> = ({
 
   const col4ExpenseRects = orderedExpenseItems.map((item, idx) => {
     const h = Math.max(18, item.amount * pxPerDollar);
-    if (idx > 0 && orderedExpenseItems[idx - 1].group === 'COGS' && item.group === 'OPEX') {
+    if (
+      idx > 0 &&
+      orderedExpenseItems[idx - 1].group === 'COGS' &&
+      item.group === 'OPEX'
+    ) {
       c4CursorY += groupDividerGap - itemGap;
     }
     const rect = { ...item, y: c4CursorY, h };
@@ -583,6 +466,131 @@ export const SankeyFinancialFlow: React.FC<SankeyFinancialFlowProps> = ({
 
   return (
     <div className="w-full rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
+      {/* =====================================================================
+          0. NEW COMPANY / CROSS-INDUSTRY SWITCHER BAR
+         ===================================================================== */}
+      <div className="px-5 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Building2 className="w-4 h-4 text-[#2563EB]" />
+          <span className="text-xs font-extrabold text-slate-900">
+            Company Layout Preview:
+          </span>
+          <span className="text-xs font-semibold text-[#7C3AED]">
+            {activeProfile.companyName}
+          </span>
+          <span className="hidden md:inline-block text-[11px] text-slate-500">
+            ({activeProfile.industryTag})
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          {(
+            [
+              {
+                id: 'NEW_ROASTERY_SMB',
+                label: 'New Co #1: Roasters & Cafes',
+              },
+              {
+                id: 'NEW_LOGISTICS_SMB',
+                label: 'New Co #2: EV Fleet Logistics',
+              },
+              {
+                id: 'CUSTOM_SMB',
+                label: 'New Co #3: Wellness Studios',
+              },
+              {
+                id: 'SAN_MATEO_STR',
+                label: 'Original: San Mateo Airbnb',
+              },
+            ] as Array<{ id: CompanyProfileId; label: string }>
+          ).map((co) => (
+            <button
+              key={co.id}
+              onClick={() => {
+                onSelectCompany(co.id);
+                setSelectedUnit('ALL');
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                activeCompanyId === co.id
+                  ? 'bg-gradient-to-r from-[#2563EB] to-[#7C3AED] text-white shadow-2xs'
+                  : 'bg-white hover:bg-indigo-50/70 text-slate-700 border border-slate-200'
+              }`}
+            >
+              {co.label}
+            </button>
+          ))}
+
+          <button
+            onClick={() => {
+              onSelectCompany('CUSTOM_SMB');
+              setIsCustomModalOpen(!isCustomModalOpen);
+            }}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 text-xs font-bold transition-colors cursor-pointer"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 text-[#00C4B4]" />
+            <span>Customize / Paste Co.</span>
+          </button>
+        </div>
+      </div>
+
+      {/* INLINE CUSTOM COMPANY CONFIGURER (IF OPEN) */}
+      {isCustomModalOpen && (
+        <div className="px-5 py-4 bg-indigo-50/60 border-b border-indigo-200/80 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+          <div>
+            <label className="block text-[10px] font-bold uppercase text-slate-600 mb-1">
+              New Company Name
+            </label>
+            <input
+              type="text"
+              value={customCompanyName}
+              onChange={(e) => setCustomCompanyName(e.target.value)}
+              className="w-full px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-semibold text-slate-900"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold uppercase text-slate-600 mb-1">
+              Division / Unit 1 (Cash Cow)
+            </label>
+            <input
+              type="text"
+              value={customUnitAName}
+              onChange={(e) => setCustomUnitAName(e.target.value)}
+              className="w-full px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-semibold text-slate-900"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold uppercase text-slate-600 mb-1">
+              Division / Unit 2 (High Upkeep)
+            </label>
+            <input
+              type="text"
+              value={customUnitBName}
+              onChange={(e) => setCustomUnitBName(e.target.value)}
+              className="w-full px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-semibold text-slate-900"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <label className="block text-[10px] font-bold uppercase text-slate-600 mb-1">
+                Division / Unit 3 (Turn Trap)
+              </label>
+              <input
+                type="text"
+                value={customUnitCName}
+                onChange={(e) => setCustomUnitCName(e.target.value)}
+                className="w-full px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-semibold text-slate-900"
+              />
+            </div>
+            <button
+              onClick={() => setIsCustomModalOpen(false)}
+              className="px-3 py-1.5 rounded-lg bg-[#2563EB] text-white text-xs font-bold cursor-pointer shrink-0"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* =====================================================================
           1. TIME-ACCELERATED SANDBOX BAR (LIGHT GEMINI BRAND PALETTE)
          ===================================================================== */}
@@ -679,12 +687,10 @@ export const SankeyFinancialFlow: React.FC<SankeyFinancialFlowProps> = ({
           <div>
             <h3 className="text-lg font-extrabold text-slate-900 tracking-tight">
               {selectedUnit === 'ALL'
-                ? 'San Mateo Portfolio FY26 P&L Income Statement'
-                : `${UNIT_REVENUES[selectedUnit].name} FY26 P&L Income Statement`}
+                ? activeProfile.statementTitle
+                : `${activeProfile.units[selectedUnit].name} — Unit P&L Statement`}
             </h3>
-            <p className="text-xs text-slate-500">
-              P&L Hierarchy: COGS (top) → Operational Expenses (middle) → Net Income (bottom), sorted from largest negative cost at top to smallest
-            </p>
+            <p className="text-xs text-slate-500">{activeProfile.subtitle}</p>
           </div>
         </div>
 
@@ -692,10 +698,19 @@ export const SankeyFinancialFlow: React.FC<SankeyFinancialFlowProps> = ({
           {(
             [
               { id: 'ALL', label: 'All 3 Units' },
-              { id: 'SM-101', label: 'SM-101 Central' },
-              { id: 'SM-202', label: 'SM-202 Baywood' },
-              { id: 'SM-303', label: 'SM-303 Shoreview' },
-            ] as Array<{ id: UnitFilterId; label: string }>
+              {
+                id: 'UNIT_A',
+                label: activeProfile.units.UNIT_A.shortName,
+              },
+              {
+                id: 'UNIT_B',
+                label: activeProfile.units.UNIT_B.shortName,
+              },
+              {
+                id: 'UNIT_C',
+                label: activeProfile.units.UNIT_C.shortName,
+              },
+            ] as Array<{ id: UnitSlotId; label: string }>
           ).map((tab) => (
             <button
               key={tab.id}
@@ -715,18 +730,18 @@ export const SankeyFinancialFlow: React.FC<SankeyFinancialFlowProps> = ({
       {/* PROFIT PER UNIT SCORECARD STRIP */}
       <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-200 border-b border-slate-200 bg-white">
         {[
-          { data: u101, meta: UNIT_REVENUES['SM-101'] },
-          { data: u202, meta: UNIT_REVENUES['SM-202'] },
-          { data: u303, meta: UNIT_REVENUES['SM-303'] },
+          { data: uA, meta: activeProfile.units.UNIT_A },
+          { data: uB, meta: activeProfile.units.UNIT_B },
+          { data: uC, meta: activeProfile.units.UNIT_C },
         ].map(({ data, meta }) => {
-          const isSelected = selectedUnit === data.unitId;
+          const isSelected = selectedUnit === data.slotId;
           const profitMargin = Math.round(
             (data.netIncome / data.totalRev) * 100
           );
           return (
             <div
-              key={data.unitId}
-              onClick={() => setSelectedUnit(isSelected ? 'ALL' : data.unitId)}
+              key={data.slotId}
+              onClick={() => setSelectedUnit(isSelected ? 'ALL' : data.slotId)}
               className={`p-4 transition-colors cursor-pointer flex flex-col justify-between gap-2 ${
                 isSelected
                   ? 'bg-indigo-50/50 ring-2 ring-inset ring-[#2563EB]'
@@ -739,7 +754,8 @@ export const SankeyFinancialFlow: React.FC<SankeyFinancialFlowProps> = ({
                     {meta.name}
                   </span>
                   <div className="text-[11px] text-slate-500">
-                    {meta.cohortLabel} · {meta.occupancy} Occ · {meta.avgStay}
+                    {meta.cohortLabel} · {meta.utilizationLabel} ·{' '}
+                    {meta.turnMetricLabel}
                   </div>
                 </div>
                 <span className="text-[11px] font-semibold text-[#2563EB] flex items-center gap-1 shrink-0">
@@ -1072,7 +1088,8 @@ export const SankeyFinancialFlow: React.FC<SankeyFinancialFlowProps> = ({
                 textAnchor="start"
                 className="text-[11px] font-mono font-semibold fill-slate-600"
               >
-                Net Cash (after Principal & CapEx): {formatCompactDollar(activeData.netCash, true)}
+                Net Cash (after Principal & CapEx):{' '}
+                {formatCompactDollar(activeData.netCash, true)}
               </text>
             </g>
           </svg>
@@ -1111,21 +1128,27 @@ export const SankeyFinancialFlow: React.FC<SankeyFinancialFlowProps> = ({
         <div className="lg:col-span-5 flex flex-wrap items-center justify-between gap-4 bg-white p-3.5 rounded-2xl border border-slate-200">
           <div className="flex items-center gap-4 text-xs font-mono tabular-nums">
             <div>
-              <div className="text-[10px] font-sans text-slate-400">SM-101</div>
+              <div className="text-[10px] font-sans text-slate-400">
+                {activeProfile.units.UNIT_A.code}
+              </div>
               <div className="font-bold text-[#2563EB]">
-                -${u101.itemValues.find((i) => i.id === inspectedExpense.id)?.amount.toLocaleString()}
+                -${uA.itemValues.find((i) => i.id === inspectedExpense.id)?.amount.toLocaleString()}
               </div>
             </div>
             <div>
-              <div className="text-[10px] font-sans text-slate-400">SM-202</div>
+              <div className="text-[10px] font-sans text-slate-400">
+                {activeProfile.units.UNIT_B.code}
+              </div>
               <div className="font-bold text-[#7C3AED]">
-                -${u202.itemValues.find((i) => i.id === inspectedExpense.id)?.amount.toLocaleString()}
+                -${uB.itemValues.find((i) => i.id === inspectedExpense.id)?.amount.toLocaleString()}
               </div>
             </div>
             <div>
-              <div className="text-[10px] font-sans text-slate-400">SM-303</div>
+              <div className="text-[10px] font-sans text-slate-400">
+                {activeProfile.units.UNIT_C.code}
+              </div>
               <div className="font-bold text-teal-600">
-                -${u303.itemValues.find((i) => i.id === inspectedExpense.id)?.amount.toLocaleString()}
+                -${uC.itemValues.find((i) => i.id === inspectedExpense.id)?.amount.toLocaleString()}
               </div>
             </div>
           </div>
@@ -1167,7 +1190,7 @@ export const SankeyFinancialFlow: React.FC<SankeyFinancialFlowProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-500">
-                Select an elevation pillar below to see how Gemini 4 Argon stress-tests and protects your P&L Sankey flows in real time
+                Select an elevation pillar below to see how Gemini 4 Argon stress-tests and protects {activeProfile.companyName}&apos;s P&L Sankey flows
               </p>
             </div>
           </div>

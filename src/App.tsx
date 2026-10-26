@@ -20,6 +20,7 @@ import { LiveResolutionStage } from './components/LiveResolutionStage';
 import { AgentDossierModal } from './components/AgentDossierModal';
 import { BoardroomDebateModal } from './components/BoardroomDebateModal';
 import { TrialAuthorizationDeck } from './components/TrialAuthorizationDeck';
+import { COMPANY_PROFILES, CompanyProfileId } from './data/companyProfiles';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 
 export type PrimaryVisualizerTab = 'SPHERE' | 'SANKEY';
@@ -27,6 +28,8 @@ export type PrimaryVisualizerTab = 'SPHERE' | 'SANKEY';
 export default function App() {
   const [activeVisualizerTab, setActiveVisualizerTab] =
     useState<PrimaryVisualizerTab>('SANKEY');
+  const [activeCompanyId, setActiveCompanyId] =
+    useState<CompanyProfileId>('NEW_ROASTERY_SMB');
   const [selectedAgentId, setSelectedAgentId] = useState<AgentId | null>('CEO');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
     'NODE_ROOT_SOLVENCY'
@@ -41,6 +44,9 @@ export default function App() {
     'PRICING',
     'CLEANING',
   ]);
+
+  const currentCompanyProfile =
+    COMPANY_PROFILES[activeCompanyId] || COMPANY_PROFILES.NEW_ROASTERY_SMB;
 
   // Baseline monthly net cash: -$429/mo burn + $310/mo Tier-1 Auto already captured = -$119/mo
   const baseMonthlyNetCash = -119;
@@ -241,10 +247,12 @@ export default function App() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-2 text-xs text-slate-600">
               <span className="font-bold text-slate-900">
-                San Mateo 3-Property Benchmark
+                {currentCompanyProfile.companyName}
               </span>
               <span aria-hidden="true">·</span>
-              <span>Threshold Mode Active</span>
+              <span className="text-[#2563EB] font-semibold">
+                {currentCompanyProfile.industryTag}
+              </span>
               <span aria-hidden="true">·</span>
               <span>Click any Human-AI Peer Lead to inspect bottlenecks</span>
             </div>
@@ -320,13 +328,15 @@ export default function App() {
 
             <span className="text-xs text-slate-500">
               {activeVisualizerTab === 'SANKEY'
-                ? 'Select any property unit card or expense ribbon to zoom into unit-level P&L and line-item costs'
+                ? 'Switch companies or click any division card / expense ribbon to zoom into unit-level P&L and line-item costs'
                 : 'Click any outer sphere to zoom into its P&L drivers and assigned agents'}
             </span>
           </div>
 
           {activeVisualizerTab === 'SANKEY' ? (
             <SankeyFinancialFlow
+              activeCompanyId={activeCompanyId}
+              onSelectCompany={setActiveCompanyId}
               activeTrialIds={activeTrialIds}
               onToggleTrial={handleToggleTrial}
               onSelectAgent={handleSelectAgent}
